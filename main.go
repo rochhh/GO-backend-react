@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"encoding/json"
 )
 
 func main() {
@@ -31,7 +32,30 @@ func handleCreatePaymentIntent( responseWriter http.ResponseWriter , request  *h
 	}
 
 	fmt.Println("The request method was POST and is OKAY !");
+
+	var req struct {
+		ProductId string `json:"product_id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Address1  string `json:"address_1"`
+		Address2  string `json:"address_2"`
+		City      string `json:"city"`
+		State     string `json:"state"`
+		Zip       string `json:"zip"`
+		Country   string `json:"country"`
+	}
+
+	err := json.NewDecoder(request.Body).Decode(&req);
+
+	if err != nil {
+		// log.Println(err)
+		http.Error(responseWriter , err.Error() , http.StatusInternalServerError);
+		return 
+	}
+
 	
+	fmt.Println("the city ->" , req.City);
+
 }
 
 
