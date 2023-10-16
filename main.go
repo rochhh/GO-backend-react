@@ -2,17 +2,19 @@ package main
 
 import (
 	// "errors"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"encoding/json"
+	"io"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/paymentintent"
 )
 
 func main() {
 
-	stripe.Key = "<your key>"
+	stripe.Key = "<key>"
     // remove the above before pushing to github 
 
 	http.HandleFunc("/create-payment-intent" , handleCreatePaymentIntent);
@@ -50,7 +52,7 @@ func handleCreatePaymentIntent( responseWriter http.ResponseWriter , request  *h
 		Country   string `json:"country"`
 	}
 
-	err := json.NewDecoder(request.Body).Decode(&req);
+	err := json.NewDecoder(request.Body).Decode(&req); // convert the json to Go code , hence .Decode()
 
 	if err != nil {
 		// log.Println(err)
@@ -67,7 +69,7 @@ func handleCreatePaymentIntent( responseWriter http.ResponseWriter , request  *h
 		},
 	}
 
-	paymentIntent , err :=paymentintent.New(params);
+	paymentIntent , err := paymentintent.New(params);   // req to stripe server 
 
 	if err != nil{
 		http.Error( responseWriter , err.Error() , http.StatusInternalServerError)
@@ -75,6 +77,29 @@ func handleCreatePaymentIntent( responseWriter http.ResponseWriter , request  *h
 
 	fmt.Println("paymentIntent.ClientSecret ->" , paymentIntent.ClientSecret)  // this is the secret key which revolves between the FE , BE and stripe server 
 
+	var resp struct {
+		ClientSecret string `json:"clientSecret"`
+	}
+
+	resp.ClientSecret = paymentIntent.ClientSecret //send the value to the person requesting this (FE)
+
+	var buf bytes.Buffer
+
+	err = json.NewEncoder(&buf).Encode(resp)
+
+	if err != nil {
+		http.Error(responseWriter , err.Error() , http.StatusInternalServerError);
+
+	}
+
+	responseWriter.Header().Set("Content-Type" , "application/json");
+
+	_ , err = io.Copy(responseWriter , &buf); // the user will receive this responseWriter which is copied in buffer
+
+
+	if err != nil {
+		fmt.Println(err);
+	}
 
 
 }
