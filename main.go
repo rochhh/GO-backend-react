@@ -6,9 +6,14 @@ import (
 	"log"
 	"net/http"
 	"encoding/json"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/paymentintent"
 )
 
 func main() {
+
+	stripe.Key = "<your key>"
+    // remove the above before pushing to github 
 
 	http.HandleFunc("/create-payment-intent" , handleCreatePaymentIntent);
 	http.HandleFunc("/health" , handleHealth);
@@ -53,8 +58,24 @@ func handleCreatePaymentIntent( responseWriter http.ResponseWriter , request  *h
 		return 
 	}
 
-	
-	fmt.Println("the city ->" , req.City);
+
+	params := &stripe.PaymentIntentParams{
+		Amount: stripe.Int64(calculateOrderAmount(req.ProductId)),
+		Currency: stripe.String(string(stripe.CurrencyUSD)),  // try removing one string as to know more 
+		AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
+			Enabled: stripe.Bool(true),
+		},
+	}
+
+	paymentIntent , err :=paymentintent.New(params);
+
+	if err != nil{
+		http.Error( responseWriter , err.Error() , http.StatusInternalServerError)
+	}
+
+	fmt.Println("paymentIntent.ClientSecret ->" , paymentIntent.ClientSecret)  // this is the secret key which revolves between the FE , BE and stripe server 
+
+
 
 }
 
@@ -74,3 +95,18 @@ func handleHealth( responseWriter http.ResponseWriter , request *http.Request ){
 
 }
 
+func calculateOrderAmount(productId string) int64 {
+	switch productId{
+	case "Forever Pants":
+		return 26000
+
+	case "Foreever Shirt":
+			return 15500
+
+	case "Forever Shorts":
+return 30000
+	
+	}
+
+	return 0
+}
